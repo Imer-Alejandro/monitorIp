@@ -25,7 +25,7 @@ async function enviarAlerta(ip, nombre, minutosCaida) {
     <tr><td style="color:#888;padding:6px 0;width:160px">Dispositivo</td><td style="color:#fff">${display}</td></tr>
     <tr><td style="color:#888;padding:6px 0">Sin respuesta desde</td><td style="color:#ff4757">${minutosCaida} minuto(s)</td></tr>
     <tr><td style="color:#888;padding:6px 0">Hora de alerta</td><td style="color:#fff">${new Date().toLocaleString('es-DO')}</td></tr>
-  </table>
+  </table> 
   <div style="margin-top:20px;padding:12px;background:#1a1a1a;border-left:3px solid #ff4757;border-radius:4px;font-size:12px;color:#aaa">
     El monitor continúa activo. No se enviarán más alertas por esta IP hasta que se recupere.
   </div>

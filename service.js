@@ -112,16 +112,7 @@ async function instalarServicio() {
 
     execSync(`"${NSSM_PATH}" start ${SERVICE_NAME}`);
 
-    console.log('');
-    console.log('╔══════════════════════════════════════════╗');
-    console.log('║   ✅ Servicio instalado correctamente    ║');
-    console.log('╠══════════════════════════════════════════╣');
-    console.log('║  Dashboard: http://localhost:3000        ║');
-    console.log('║  Arranca automáticamente con Windows     ║');
-    console.log('║                                          ║');
-    console.log('║  Para desinstalar:                       ║');
-    console.log('║  MonitorIP.exe --uninstall               ║');
-    console.log('╚══════════════════════════════════════════╝');
+ 
   } catch (e) {
     console.error('❌ Error registrando el servicio:', e.message);
     process.exit(1);

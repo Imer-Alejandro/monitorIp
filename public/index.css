@@ -1,4 +1,3 @@
-
   @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&family=Inter:wght@300;400;500;600&display=swap');
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -330,3 +329,55 @@
   .scanning .btn-scan-start { position: relative; overflow: hidden; }
   @keyframes scan-pulse { 0%,100%{box-shadow:0 0 0 0 rgba(0,214,143,0.4)} 50%{box-shadow:0 0 0 8px rgba(0,214,143,0)} }
   .btn-scanning { animation: scan-pulse 1.5s infinite; }
+
+  /* ── Import modal ────────────────────────────────────────────────────────── */
+  .import-drop-zone {
+    border: 2px dashed var(--border2); border-radius: 10px; padding: 36px 20px;
+    text-align: center; cursor: pointer; transition: var(--transition);
+    background: var(--bg3); position: relative;
+  }
+  .import-drop-zone:hover,
+  .import-drop-zone.drag-over { border-color: var(--green); background: rgba(0,214,143,0.04); }
+  .import-drop-icon { font-size: 32px; margin-bottom: 10px; opacity: 0.5; }
+  .import-drop-text { font-size: 13px; color: var(--text2); margin-bottom: 6px; }
+  .import-drop-sub { font-size: 11px; color: var(--text3); font-family: var(--mono); }
+  .import-drop-zone input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+
+  .import-preview { margin-top: 16px; }
+  .import-preview-title {
+    font-size: 11px; font-weight: 600; color: var(--text2); text-transform: uppercase;
+    letter-spacing: 0.08em; font-family: var(--mono); margin-bottom: 10px;
+    padding-bottom: 8px; border-bottom: 1px solid var(--border);
+  }
+  .import-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .import-table th {
+    padding: 7px 12px; text-align: left; font-size: 10px; color: var(--text2);
+    text-transform: uppercase; letter-spacing: 0.07em; font-family: var(--mono);
+    background: var(--bg3); border-bottom: 1px solid var(--border); font-weight: 500;
+  }
+  .import-table td { padding: 8px 12px; border-bottom: 1px solid var(--border); }
+  .import-table tr:last-child td { border-bottom: none; }
+  .import-table tr.row-ok   td { background: rgba(0,214,143,0.03); }
+  .import-table tr.row-err  td { background: rgba(255,71,87,0.04); }
+  .import-table tr.row-dup  td { background: rgba(255,170,0,0.04); }
+
+  .import-ip-val { font-family: var(--mono); font-size: 12px; font-weight: 600; }
+  .import-row-status { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; font-family: var(--mono); padding: 2px 7px; border-radius: 4px; font-weight: 600; }
+  .row-status-ok  { background: rgba(0,214,143,0.1);  color: var(--green); border: 1px solid rgba(0,214,143,0.2); }
+  .row-status-err { background: rgba(255,71,87,0.1);   color: var(--red);   border: 1px solid rgba(255,71,87,0.2); }
+  .row-status-dup { background: rgba(255,170,0,0.1);   color: var(--amber); border: 1px solid rgba(255,170,0,0.2); }
+
+  .import-stats { display: flex; gap: 16px; margin-top: 12px; padding: 10px 14px; background: var(--bg3); border-radius: 7px; border: 1px solid var(--border); }
+  .import-stat { font-size: 12px; font-family: var(--mono); color: var(--text2); }
+  .import-stat strong { color: var(--text); }
+
+  .import-preview-scroll { max-height: 260px; overflow-y: auto; border: 1px solid var(--border); border-radius: 7px; }
+
+  .btn-template {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 11px; font-family: var(--mono); color: var(--blue);
+    background: rgba(74,144,226,0.07); border: 1px solid rgba(74,144,226,0.2);
+    border-radius: 6px; padding: 5px 11px; cursor: pointer; transition: var(--transition);
+    font-weight: 600;
+  }
+  .btn-template:hover { background: rgba(74,144,226,0.14); }
