@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Monitor de IPs</title>
+<link rel="stylesheet" href="index.css"/>
+</head>
+<body>
+<div class="shell">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="logo">
+      <div class="logo-title">⬡ MONITOR IP</div>
+      <div class="logo-sub" id="sb-version">v1.0 • Activo</div>
+    </div>
+
+    <div class="status-badge">
+      <div class="label">Estado general</div>
+      <div class="status-nums">
+        <div class="status-num"><div class="n n-green" id="sb-online">0</div><div class="l">online</div></div>
+        <div class="status-num"><div class="n n-red"   id="sb-offline">0</div><div class="l">offline</div></div>
+        <div class="status-num"><div class="n n-blue"  id="sb-total">0</div><div class="l">total</div></div>
+      </div>
+    </div>
+
+    <nav class="nav">
+      <div class="nav-item active" data-page="dashboard"><span class="nav-icon">◈</span> Dashboard</div>
+      <div class="nav-item" data-page="ips"><span class="nav-icon">◉</span> Gestión de IPs</div>
+      <div class="nav-item" data-page="scanner"><span class="nav-icon">⊕</span> Escáner de Red</div>
+      <div class="nav-item" data-page="logs"><span class="nav-icon">◎</span> Actividad</div>
+      <div class="nav-item" data-page="config"><span class="nav-icon">◐</span> Configuración</div>
+    </nav>
+  </aside>
+
+  <!-- Main -->
+  <div class="main">
+
+    <!-- ── DASHBOARD ─────────────────────────────────────────────────────── -->
+    <div class="page visible" id="page-dashboard">
+      <div class="topbar">
+        <div>
+          <div class="page-title">Dashboard</div>
+          <div class="page-sub" id="last-update">Actualizando...</div>
+        </div>
+        <div class="topbar-actions">
+          <button class="btn btn-ghost" onclick="cargarTodo()">↺ Actualizar</button>
+        </div>
+      </div>
+
+      <div class="content">
+        <div class="stats-grid">
+          <div class="stat-card stat-green">
+            <div class="stat-label">En línea</div>
+            <div class="stat-value sv-green" id="st-online">0</div>
+            <div class="stat-icon">🟢</div>
+          </div>
+          <div class="stat-card stat-red">
+            <div class="stat-label">Fuera de línea</div>
+            <div class="stat-value sv-red" id="st-offline">0</div>
+            <div class="stat-icon">🔴</div>
+          </div>
+          <div class="stat-card stat-blue">
+            <div class="stat-label">Total IPs</div>
+            <div class="stat-value sv-blue" id="st-total">0</div>
+            <div class="stat-icon">◉</div>
+          </div>
+          <div class="stat-card stat-amber">
+            <div class="stat-label">Pings hoy</div>
+            <div class="stat-value sv-amber" id="st-pings">0</div>
+            <div class="stat-icon">⚡</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Estado de dispositivos</div>
+            <button class="btn btn-primary btn-sm" onclick="abrirModal()">＋ Agregar IP</button>
+          </div>
+          <div class="card-body">
+            <table class="ip-table">
+              <thead>
+                <tr>
+                  <th>IP / Host</th>
+                  <th>Estado</th>
+                  <th>Respuesta</th>
+                  <th>Último check</th>
+                  <th>Historial (60 pings)</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="dashboard-table">
+                <tr><td colspan="6"><div class="empty"><div class="empty-icon">◎</div><div class="empty-text">Cargando...</div></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── IPs ───────────────────────────────────────────────────────────── -->
+    <div class="page" id="page-ips">
+      <div class="topbar">
+        <div>
+          <div class="page-title">Gestión de IPs</div>
+          <div class="page-sub">Agrega, edita o elimina IPs monitoreadas</div>
+        </div>
+        <div class="topbar-actions">
+          <button class="btn btn-primary" onclick="abrirModal()">＋ Agregar IP</button>
+        </div>
+      </div>
+      <div class="content">
+        <div class="card">
+          <div class="card-header"><div class="card-title">IPs registradas</div></div>
+          <div class="card-body">
+            <table class="ip-table">
+              <thead>
+                <tr><th>IP / Host</th><th>Nombre</th><th>Estado</th><th>Sin respuesta desde</th><th>Acciones</th></tr>
+              </thead>
+              <tbody id="ips-table"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── SCANNER ──────────────────────────────────────────────────────── -->
+    <div class="page" id="page-scanner">
+      <div class="topbar">
+        <div>
+          <div class="page-title">Escáner de Red</div>
+          <div class="page-sub" id="scan-subnet-label">Detectando red local...</div>
+        </div>
+        <div class="topbar-actions">
+          <button class="btn btn-danger btn-sm" id="btn-cancel-scan" onclick="cancelarEscaneo()" style="display:none">✕ Cancelar</button>
+          <button class="btn btn-primary" id="btn-start-scan" onclick="iniciarEscaneo()">⊕ Escanear Red</button>
+        </div>
+      </div>
+
+      <!-- Progress bar (hidden by default) -->
+      <div id="scan-progress-wrap" class="scan-progress-wrap" style="display:none; margin: 0 28px; margin-top: 16px;">
+        <div class="scan-progress-header">
+          <span class="scan-progress-label" id="scan-progress-label">Escaneando dispositivos...</span>
+          <span class="scan-progress-pct" id="scan-progress-pct">0%</span>
+        </div>
+        <div class="scan-bar-track">
+          <div class="scan-bar-fill" id="scan-bar-fill" style="width:0%"></div>
+        </div>
+        <div class="scan-meta">
+          <div class="scan-meta-item">Verificados: <span id="scan-checked">0</span> / <span id="scan-total">254</span></div>
+          <div class="scan-meta-item">Encontrados: <span id="scan-found-count">0</span></div>
+          <div class="scan-meta-item">Tiempo: <span id="scan-elapsed">0s</span></div>
+        </div>
+      </div>
+
+      <div class="content">
+        <!-- Idle state -->
+        <div id="scan-idle" class="card">
+          <div class="scan-idle">
+            <div class="scan-idle-icon">◎</div>
+            <div class="scan-idle-title">Escáner de dispositivos de red</div>
+            <div class="scan-idle-sub">Detecta todos los dispositivos activos en tu red local con información<br>detallada: hostname, MAC, fabricante y tiempo de respuesta.</div>
+            <button class="btn btn-primary" onclick="iniciarEscaneo()" style="margin: 0 auto;">⊕ Iniciar escaneo</button>
+          </div>
+        </div>
+
+        <!-- Results table (hidden until scan) -->
+        <div id="scan-results" class="card" style="display:none;">
+          <div class="card-header">
+            <div class="card-title" id="scan-results-title">Dispositivos encontrados</div>
+            <button class="btn btn-ghost btn-sm" onclick="iniciarEscaneo()">↺ Re-escanear</button>
+          </div>
+          <div class="card-body">
+            <table class="scan-table">
+              <thead>
+                <tr>
+                  <th>IP / Enlace</th>
+                  <th>Hostname</th>
+                  <th>MAC Address</th>
+                  <th>Fabricante</th>
+                  <th>Ping</th>
+                  <th>Acción</th>
+                </tr>
+              </thead>
+              <tbody id="scan-table-body"></tbody>
+            </table>
+            <div class="scan-summary-bar" id="scan-summary-bar" style="display:none">
+              <div class="scan-sum-item">Total: <strong id="sum-total">0</strong></div>
+              <div class="scan-sum-item">Con hostname: <strong id="sum-hostname">0</strong></div>
+              <div class="scan-sum-item">Con MAC identificada: <strong id="sum-mac">0</strong></div>
+              <div class="scan-sum-item">Agregadas al monitoreo: <strong id="sum-added">0</strong></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── LOGS ──────────────────────────────────────────────────────────── -->
+    <div class="page" id="page-logs">
+      <div class="topbar">
+        <div>
+          <div class="page-title">Actividad reciente</div>
+          <div class="page-sub">Últimos 100 pings registrados</div>
+        </div>
+        <div class="topbar-actions">
+          <button class="btn btn-ghost" onclick="cargarLogs()">↺ Actualizar</button>
+        </div>
+      </div>
+      <div class="content">
+        <div class="card">
+          <div class="card-body">
+            <div class="log-list" id="log-list">
+              <div class="empty"><div class="empty-icon">◎</div><div class="empty-text">Cargando...</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── CONFIG ────────────────────────────────────────────────────────── -->
+    <div class="page" id="page-config">
+      <div class="topbar">
+        <div>
+          <div class="page-title">Configuración</div>
+          <div class="page-sub">SMTP, intervalos y umbrales de alerta</div>
+        </div>
+      </div>
+      <div class="content">
+        <div style="max-width: 680px; display: flex; flex-direction: column; gap: 20px;">
+
+          <div class="card">
+            <div class="card-header"><div class="card-title">Configuración de correo (SMTP)</div></div>
+            <div class="card-body" style="padding: 20px;">
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">Servidor SMTP</label>
+                  <input class="form-input" id="cfg-smtp-host" placeholder="smtp.gmail.com"/>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Puerto</label>
+                  <input class="form-input" id="cfg-smtp-port" placeholder="587"/>
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">Usuario / Email remitente</label>
+                  <input class="form-input" id="cfg-smtp-user" placeholder="tu@gmail.com"/>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Contraseña de app</label>
+                  <input class="form-input" type="password" id="cfg-smtp-pass" placeholder="••••••••"/>
+                  <div class="form-hint">En Gmail: Configuración → Seguridad → Contraseñas de aplicación</div>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Correo destino (quien recibe alertas)</label>
+                <input class="form-input" id="cfg-destino" placeholder="alerta@empresa.com"/>
+              </div>
+              <div style="display:flex; gap:10px; margin-top:4px;">
+                <button class="btn btn-primary" onclick="guardarConfig()">Guardar configuración</button>
+                <button class="btn btn-ghost" onclick="testCorreo()">✉ Probar correo</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header"><div class="card-title">Parámetros del monitor</div></div>
+            <div class="card-body" style="padding: 20px;">
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">Intervalo de ping (segundos)</label>
+                  <select class="form-input" id="cfg-intervalo">
+                    <option value="10">10 segundos</option>
+                    <option value="30">30 segundos</option>
+                    <option value="60">1 minuto</option>
+                    <option value="120">2 minutos</option>
+                    <option value="300">5 minutos</option>
+                  </select>
+                  <div class="form-hint">Con qué frecuencia se hace ping a cada IP</div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Minutos sin respuesta para alertar</label>
+                  <select class="form-input" id="cfg-minutos">
+                    <option value="1">1 minuto</option>
+                    <option value="2">2 minutos</option>
+                    <option value="3">3 minutos</option>
+                    <option value="5">5 minutos</option>
+                    <option value="10">10 minutos</option>
+                    <option value="15">15 minutos</option>
+                  </select>
+                  <div class="form-hint">Tiempo caída antes de enviar el correo de alerta</div>
+                </div>
+              </div>
+              <button class="btn btn-primary" onclick="guardarConfig()">Guardar parámetros</button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /main -->
+</div><!-- /shell -->
+
+<!-- Modal agregar/editar IP -->
+<div class="overlay hidden" id="modal-overlay">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title" id="modal-title">Agregar IP</div>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="modal-id"/>
+      <div class="form-group">
+        <label class="form-label">Dirección IP o hostname</label>
+        <input class="form-input" id="modal-ip" placeholder="192.168.1.1 o servidor.local"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Nombre / descripción (opcional)</label>
+        <input class="form-input" id="modal-nombre" placeholder="Router principal, NAS, etc."/>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="cerrarModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarIP()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal historial -->
+<div class="overlay hidden" id="hist-overlay">
+  <div class="modal" style="width:500px">
+    <div class="modal-head" style="display:flex;justify-content:space-between;align-items:center">
+      <div class="modal-title" id="hist-title">Historial</div>
+      <button class="btn btn-ghost btn-sm" onclick="cerrarHist()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="font-size:11px;color:var(--text2);margin-bottom:8px;font-family:var(--mono)">Últimos 60 pings — verde = OK, rojo = sin respuesta</div>
+      <div class="hist-grid" id="hist-grid"></div>
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);font-family:var(--mono)" id="hist-info"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Toasts -->
+<div class="toast-container" id="toasts"></div>
+
+<script>
+// ── API helpers ───────────────────────────────────────────────────────────────
+async function api(method, path, body) {
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if (body) opts.body = JSON.stringify(body);
+  const r = await fetch('/api' + path, opts);
+  return r.json();
+}
+const GET    = p    => api('GET',    p);
+const POST   = (p,b) => api('POST',   p, b);
+const PUT    = (p,b) => api('PUT',    p, b);
+const DELETE = p    => api('DELETE', p);
+
+// ── Toast ─────────────────────────────────────────────────────────────────────
+function toast(msg, tipo = 'ok') {
+  const el = document.createElement('div');
+  el.className = `toast toast-${tipo}`;
+  el.textContent = msg;
+  document.getElementById('toasts').appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+
+// ── Navegación ────────────────────────────────────────────────────────────────
+document.querySelectorAll('.nav-item').forEach(item => {
+  item.addEventListener('click', () => {
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('visible'));
+    item.classList.add('active');
+    const page = item.dataset.page;
+    document.getElementById('page-' + page).classList.add('visible');
+    if (page === 'logs')   cargarLogs();
+    if (page === 'config') cargarConfig();
+    if (page === 'ips')    renderIPsPage();
+  });
+});
+
+// ── Datos ─────────────────────────────────────────────────────────────────────
+let ipsData = [];
+
+async function cargarTodo() {
+  try {
+    const [ips, stats] = await Promise.all([GET('/ips'), GET('/stats')]);
+    ipsData = ips;
+    actualizarStats(stats);
+    renderDashboard(ips);
+    renderIPsPage();
+    document.getElementById('last-update').textContent =
+      'Actualizado: ' + new Date().toLocaleTimeString('es-DO');
+  } catch(e) {
+    toast('Error de conexión con el servidor', 'err');
+  }
+}
+
+function actualizarStats(s) {
+  document.getElementById('st-online').textContent  = s.online;
+  document.getElementById('st-offline').textContent = s.offline;
+  document.getElementById('st-total').textContent   = s.total;
+  document.getElementById('st-pings').textContent   = s.pingsHoy;
+  document.getElementById('sb-online').textContent  = s.online;
+  document.getElementById('sb-offline').textContent = s.offline;
+  document.getElementById('sb-total').textContent   = s.total;
+}
+
+// ── Dashboard table ───────────────────────────────────────────────────────────
+async function renderDashboard(ips) {
+  const tbody = document.getElementById('dashboard-table');
+  if (!ips.length) {
+    tbody.innerHTML = `<tr><td colspan="6"><div class="empty"><div class="empty-icon">◎</div><div class="empty-text">No hay IPs registradas</div><div class="empty-sub">Agrega una IP para comenzar a monitorear</div></div></td></tr>`;
+    return;
+  }
+
+  // Cargar historial de todas en paralelo
+  const histories = await Promise.all(ips.map(ip => GET(`/ips/${ip.id}/historial`).catch(() => [])));
+
+  tbody.innerHTML = ips.map((ip, i) => {
+    const hist = histories[i] || [];
+    const online = !ip.caido_desde;
+    const pill = online
+      ? `<span class="pill pill-online"><span class="pill-dot"></span>Online</span>`
+      : `<span class="pill pill-offline"><span class="pill-dot"></span>Offline</span>`;
+
+    const ms = ip.ultimo_tiempo;
+    let msHtml = `<span class="ms-value">—</span>`;
+    if (ms !== null && ms !== undefined && online) {
+      const cls = ms < 50 ? 'ms-good' : ms < 200 ? '' : 'ms-slow';
+      msHtml = `<span class="ms-value ${cls}">${Math.round(ms)} ms</span>`;
+    }
+
+    const tiempo = ip.ultimo_check
+      ? `<span class="time-value">${formatTime(ip.ultimo_check)}</span>`
+      : `<span class="time-value">—</span>`;
+
+    // Spark bars
+    const reversed = [...hist].reverse();
+    const sparks = reversed.map(h => {
+      const color = h.estado === 'up' ? 'var(--green)' : 'var(--red)';
+      const h_px = h.estado === 'up' ? (h.tiempo_ms ? Math.min(24, Math.max(6, Math.round(h.tiempo_ms / 5))) : 16) : 24;
+      return `<div class="spark-bar" style="height:${h_px}px;background:${color};opacity:${h.estado==='up'?'0.7':'0.9'}"></div>`;
+    }).join('');
+
+    return `<tr>
+      <td>
+        <div class="ip-address">${ip.ip}</div>
+        ${ip.nombre ? `<div class="ip-name">${ip.nombre}</div>` : ''}
+      </td>
+      <td>${pill}</td>
+      <td>${msHtml}</td>
+      <td>${tiempo}</td>
+      <td>
+        <div class="spark" style="cursor:pointer" onclick="abrirHist(${ip.id},'${ip.ip}',${i})">${sparks || '<span style="color:var(--text3);font-size:11px">sin datos</span>'}</div>
+      </td>
+      <td style="text-align:right">
+        <button class="btn btn-ghost btn-sm" onclick="editarIP(${ip.id})">✎</button>
+        <button class="btn btn-danger btn-sm" onclick="eliminarIP(${ip.id},'${ip.ip}')">✕</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// ── IPs page ──────────────────────────────────────────────────────────────────
+function renderIPsPage() {
+  const tbody = document.getElementById('ips-table');
+  if (!ipsData.length) {
+    tbody.innerHTML = `<tr><td colspan="5"><div class="empty"><div class="empty-icon">◉</div><div class="empty-text">Sin IPs registradas</div></div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = ipsData.map(ip => {
+    const online = !ip.caido_desde;
+    const pill = online
+      ? `<span class="pill pill-online"><span class="pill-dot"></span>Online</span>`
+      : `<span class="pill pill-offline"><span class="pill-dot"></span>Offline</span>`;
+    const caida = !online && ip.caido_desde
+      ? `<span class="time-value" style="color:var(--red)">${formatTime(ip.caido_desde)}</span>`
+      : `<span style="color:var(--text3)">—</span>`;
+    return `<tr>
+      <td class="ip-address">${ip.ip}</td>
+      <td class="ip-name">${ip.nombre || '—'}</td>
+      <td>${pill}</td>
+      <td>${caida}</td>
+      <td style="text-align:right">
+        <button class="btn btn-ghost btn-sm" onclick="editarIP(${ip.id})">✎ Editar</button>
+        <button class="btn btn-danger btn-sm" onclick="eliminarIP(${ip.id},'${ip.ip}')">✕ Eliminar</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// ── Modal IP ──────────────────────────────────────────────────────────────────
+function abrirModal(id) {
+  document.getElementById('modal-overlay').classList.remove('hidden');
+  document.getElementById('modal-id').value = id || '';
+  document.getElementById('modal-ip').value = '';
+  document.getElementById('modal-nombre').value = '';
+  document.getElementById('modal-title').textContent = id ? 'Editar IP' : 'Agregar IP';
+  if (id) {
+    const ip = ipsData.find(i => i.id === id);
+    if (ip) {
+      document.getElementById('modal-ip').value = ip.ip;
+      document.getElementById('modal-nombre').value = ip.nombre || '';
+    }
+  }
+  setTimeout(() => document.getElementById('modal-ip').focus(), 50);
+}
+
+function cerrarModal() {
+  document.getElementById('modal-overlay').classList.add('hidden');
+}
+
+async function guardarIP() {
+  const id    = document.getElementById('modal-id').value;
+  const ip    = document.getElementById('modal-ip').value.trim();
+  const nombre = document.getElementById('modal-nombre').value.trim();
+  if (!ip) { toast('Escribe una IP o host', 'err'); return; }
+
+  let res;
+  if (id) res = await PUT(`/ips/${id}`, { ip, nombre });
+  else     res = await POST('/ips', { ip, nombre });
+
+  if (res.ok) {
+    toast(id ? 'IP actualizada' : 'IP agregada correctamente');
+    cerrarModal();
+    cargarTodo();
+  } else {
+    toast(res.error || 'Error guardando', 'err');
+  }
+}
+
+function editarIP(id) {
+  abrirModal(id);
+}
+
+async function eliminarIP(id, ip) {
+  if (!confirm(`¿Eliminar ${ip} del monitoreo?`)) return;
+  const res = await DELETE(`/ips/${id}`);
+  if (res.ok) { toast('IP eliminada'); cargarTodo(); }
+  else toast('Error eliminando', 'err');
+}
+
+// ── Historial modal ───────────────────────────────────────────────────────────
+let histData = [];
+
+async function abrirHist(id, ip, idx) {
+  document.getElementById('hist-overlay').classList.remove('hidden');
+  document.getElementById('hist-title').textContent = `Historial — ${ip}`;
+  const hist = await GET(`/ips/${id}/historial`);
+  histData = hist;
+  const grid = document.getElementById('hist-grid');
+  const reversed = [...hist].reverse();
+  grid.innerHTML = reversed.map(h =>
+    `<div class="hist-cell ${h.estado === 'up' ? 'hist-up' : 'hist-down'}" title="${h.fecha} — ${h.estado === 'up' ? h.tiempo_ms + 'ms' : 'sin respuesta'}"></div>`
+  ).join('') + Array(60 - reversed.length).fill(`<div class="hist-cell hist-none"></div>`).join('');
+  const ups = hist.filter(h => h.estado === 'up').length;
+  const pct = hist.length ? Math.round((ups / hist.length) * 100) : 0;
+  document.getElementById('hist-info').innerHTML =
+    `<span>Uptime: <strong style="color:var(--green)">${pct}%</strong></span>
+     <span>${hist.length} registros</span>
+     <span>Último: ${hist.length ? formatTime(hist[0].fecha) : '—'}</span>`;
+}
+
+function cerrarHist() {
+  document.getElementById('hist-overlay').classList.add('hidden');
+}
+
+// ── Logs ──────────────────────────────────────────────────────────────────────
+async function cargarLogs() {
+  const logs = await GET('/logs');
+  const el = document.getElementById('log-list');
+  if (!logs.length) {
+    el.innerHTML = `<div class="empty"><div class="empty-icon">◎</div><div class="empty-text">Sin actividad registrada</div></div>`;
+    return;
+  }
+  el.innerHTML = logs.map(l => {
+    const dot = l.estado === 'up' ? '●' : '●';
+    const cls = l.estado === 'up' ? 'dot-green' : 'dot-red';
+    const ms = l.estado === 'up' && l.tiempo_ms ? `${Math.round(l.tiempo_ms)}ms` : '—';
+    const name = l.nombre ? `<span style="color:var(--text2)">${l.nombre}</span> ` : '';
+    return `<div class="log-item">
+      <span class="${cls}" style="font-size:10px">${dot}</span>
+      <span class="log-ip">${name}${l.ip}</span>
+      <span class="log-ms">${ms}</span>
+      <span class="log-time">${formatTime(l.fecha)}</span>
+    </div>`;
+  }).join('');
+}
+
+// ── Config ────────────────────────────────────────────────────────────────────
+async function cargarConfig() {
+  const cfg = await GET('/config');
+  document.getElementById('cfg-smtp-host').value = cfg.smtp_host || '';
+  document.getElementById('cfg-smtp-port').value = cfg.smtp_port || '587';
+  document.getElementById('cfg-smtp-user').value = cfg.smtp_user || '';
+  document.getElementById('cfg-smtp-pass').value = cfg.smtp_pass === '••••••••' ? '' : '';
+  document.getElementById('cfg-destino').value   = cfg.correo_destino || '';
+  setSelect('cfg-intervalo', cfg.intervalo_seg || '60');
+  setSelect('cfg-minutos',   cfg.minutos_alerta || '3');
+}
+
+function setSelect(id, val) {
+  const el = document.getElementById(id);
+  for (const opt of el.options) if (opt.value === val) { opt.selected = true; break; }
+}
+
+async function guardarConfig() {
+  const body = {
+    smtp_host:      document.getElementById('cfg-smtp-host').value,
+    smtp_port:      document.getElementById('cfg-smtp-port').value,
+    smtp_user:      document.getElementById('cfg-smtp-user').value,
+    smtp_pass:      document.getElementById('cfg-smtp-pass').value,
+    correo_destino: document.getElementById('cfg-destino').value,
+    intervalo_seg:  document.getElementById('cfg-intervalo').value,
+    minutos_alerta: document.getElementById('cfg-minutos').value,
+  };
+  const res = await POST('/config', body);
+  if (res.ok) toast('Configuración guardada. Monitor reiniciado.');
+  else toast('Error guardando config', 'err');
+}
+
+async function testCorreo() {
+  toast('Enviando correo de prueba...', 'info');
+  const res = await POST('/test-correo', {});
+  toast(res.msg, res.ok ? 'ok' : 'err');
+}
+
+// ── Utils ─────────────────────────────────────────────────────────────────────
+function formatTime(ts) {
+  if (!ts) return '—';
+  const d = new Date(ts);
+  if (isNaN(d)) return ts;
+  const now = new Date();
+  const diff = Math.floor((now - d) / 1000);
+  if (diff < 60)   return `hace ${diff}s`;
+  if (diff < 3600) return `hace ${Math.floor(diff/60)}m`;
+  if (diff < 86400) return `hace ${Math.floor(diff/3600)}h`;
+  return d.toLocaleDateString('es-DO');
+}
+
+// ── Teclas de modal ───────────────────────────────────────────────────────────
+document.getElementById('modal-nombre').addEventListener('keydown', e => { if (e.key === 'Enter') guardarIP(); });
+document.getElementById('modal-ip').addEventListener('keydown', e => { if (e.key === 'Enter') guardarIP(); });
+document.getElementById('modal-overlay').addEventListener('click', e => { if (e.target === e.currentTarget) cerrarModal(); });
+document.getElementById('hist-overlay').addEventListener('click', e => { if (e.target === e.currentTarget) cerrarHist(); });
+
+// ── Escáner de red ────────────────────────────────────────────────────────────
+let scanInterval   = null;
+let scanStartTime  = null;
+let scanAddedIPs   = new Set(); // IPs ya agregadas al monitoreo en esta sesión
+let scanResultsMap = {};        // ip → device data
+
+async function iniciarEscaneo() {
+  const res = await POST('/scan/start', {});
+  if (!res.ok) { toast(res.error || 'No se pudo iniciar el escaneo', 'err'); return; }
+
+  scanStartTime = Date.now();
+  scanResultsMap = {};
+
+  // Mostrar barra y ocultar estados previos
+  document.getElementById('scan-progress-wrap').style.display = 'block';
+  document.getElementById('scan-idle').style.display    = 'none';
+  document.getElementById('scan-results').style.display = 'none';
+  document.getElementById('btn-start-scan').style.display  = 'none';
+  document.getElementById('btn-cancel-scan').style.display = 'inline-flex';
+  document.getElementById('btn-start-scan').classList.add('btn-scanning');
+
+  toast('Escaneando red local...', 'info');
+
+  // Polling de estado
+  scanInterval = setInterval(actualizarEscaneo, 1200);
+  actualizarEscaneo();
+}
+
+async function actualizarEscaneo() {
+  const estado = await GET('/scan/status');
+  if (!estado) return;
+
+  // Progreso
+  const pct = estado.progress || 0;
+  document.getElementById('scan-bar-fill').style.width    = pct + '%';
+  document.getElementById('scan-progress-pct').textContent = pct + '%';
+  document.getElementById('scan-checked').textContent    = estado.checked || 0;
+  document.getElementById('scan-total').textContent      = estado.total   || 254;
+  document.getElementById('scan-found-count').textContent = (estado.found || []).length;
+
+  const elapsed = scanStartTime ? Math.round((Date.now() - scanStartTime) / 1000) : 0;
+  document.getElementById('scan-elapsed').textContent = elapsed + 's';
+
+  if (estado.subnet) {
+    document.getElementById('scan-progress-label').textContent = `Escaneando ${estado.subnet}`;
+  }
+
+  // Renderizar resultados en tiempo real conforme llegan
+  if (estado.found && estado.found.length > 0) {
+    document.getElementById('scan-results').style.display = 'block';
+    renderizarResultados(estado.found);
+  }
+
+  // Escaneo finalizado
+  if (!estado.running && estado.finishedAt) {
+    clearInterval(scanInterval);
+    scanInterval = null;
+
+    document.getElementById('scan-progress-wrap').style.display = 'none';
+    document.getElementById('btn-start-scan').style.display  = 'inline-flex';
+    document.getElementById('btn-cancel-scan').style.display = 'none';
+    document.getElementById('btn-start-scan').classList.remove('btn-scanning');
+
+    const n = (estado.found || []).length;
+    document.getElementById('scan-results-title').textContent = `${n} dispositivo${n !== 1 ? 's' : ''} encontrado${n !== 1 ? 's' : ''}`;
+    actualizarSummary(estado.found || []);
+
+    if (n === 0) {
+      document.getElementById('scan-idle').style.display  = 'block';
+      document.getElementById('scan-results').style.display = 'none';
+      toast('No se encontraron dispositivos activos.', 'err');
+    } else {
+      toast(`Escaneo completado — ${n} dispositivos encontrados`, 'ok');
+    }
+  }
+}
+
+function renderizarResultados(devices) {
+  const tbody = document.getElementById('scan-table-body');
+  tbody.innerHTML = devices.map(d => {
+    const estaAgregada = scanAddedIPs.has(d.ip);
+    const msClass = !d.ms ? '' : d.ms < 20 ? 'scan-ms-good' : d.ms < 100 ? 'scan-ms-ok' : 'scan-ms-slow';
+    const msText  = d.ms != null ? `${Math.round(d.ms)} ms` : '—';
+    const macText = d.mac && d.mac !== '—' ? d.mac : '<span style="color:var(--text3)">—</span>';
+    const fabText = d.fabricante && d.fabricante !== '—' && d.fabricante !== 'Desconocido'
+      ? `<span style="color:var(--text)">${d.fabricante}</span>`
+      : `<span style="color:var(--text3)">${d.fabricante || '—'}</span>`;
+    const hostnameText = d.hostname && d.hostname !== '—'
+      ? `<span class="scan-hostname">${d.hostname}</span>`
+      : `<span style="color:var(--text3); font-size:11px; font-family:var(--mono)">—</span>`;
+
+    const ipLinkClass = d.esPropio ? 'scan-ip-link scan-ip-own' : 'scan-ip-link';
+    const ownBadge    = d.esPropio ? `<span class="scan-ip-badge">ESTE EQUIPO</span>` : '';
+
+    const btnLabel = estaAgregada ? '✓ Agregada' : '＋ Monitorear';
+    const btnCls   = estaAgregada ? 'btn-add-monitor added' : 'btn-add-monitor';
+    const btnDis   = estaAgregada ? 'disabled' : '';
+
+    return `<tr>
+      <td>
+        <a href="http://${d.ip}" target="_blank" rel="noopener" class="${ipLinkClass}" title="Abrir http://${d.ip}">
+          ${d.ip} <span style="font-size:10px;opacity:0.5">↗</span>
+        </a>
+        ${ownBadge}
+      </td>
+      <td>${hostnameText}</td>
+      <td><span class="scan-mac">${macText}</span></td>
+      <td>${fabText}</td>
+      <td><span class="scan-ms ${msClass}">${msText}</span></td>
+      <td>
+        <button class="${btnCls}" onclick="agregarDesdeScanner('${d.ip}', '${(d.hostname !== '—' ? d.hostname : '')}', '${d.fabricante || ''}')" ${btnDis}>
+          ${btnLabel}
+        </button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function actualizarSummary(devices) {
+  const withHostname = devices.filter(d => d.hostname && d.hostname !== '—').length;
+  const withMac      = devices.filter(d => d.mac && d.mac !== '—').length;
+  document.getElementById('sum-total').textContent    = devices.length;
+  document.getElementById('sum-hostname').textContent = withHostname;
+  document.getElementById('sum-mac').textContent      = withMac;
+  document.getElementById('sum-added').textContent    = scanAddedIPs.size;
+  document.getElementById('scan-summary-bar').style.display = 'flex';
+}
+
+async function agregarDesdeScanner(ip, hostname, fabricante) {
+  // Sugerir nombre basado en hostname o fabricante
+  const nombreSugerido = hostname && hostname !== '—'
+    ? hostname.split('.')[0]
+    : fabricante && fabricante !== 'Desconocido' && fabricante !== '—'
+    ? fabricante
+    : '';
+
+  const res = await POST('/ips', { ip, nombre: nombreSugerido });
+  if (res.ok) {
+    scanAddedIPs.add(ip);
+    document.getElementById('sum-added').textContent = scanAddedIPs.size;
+    toast(`${ip} agregada al monitoreo`);
+    // Re-renderizar para marcar el botón
+    const estado = await GET('/scan/status');
+    if (estado && estado.found) renderizarResultados(estado.found);
+  } else {
+    toast(res.error || 'Error agregando IP', 'err');
+  }
+}
+
+async function cancelarEscaneo() {
+  await POST('/scan/cancel', {});
+  clearInterval(scanInterval);
+  scanInterval = null;
+  document.getElementById('scan-progress-wrap').style.display = 'none';
+  document.getElementById('btn-start-scan').style.display  = 'inline-flex';
+  document.getElementById('btn-cancel-scan').style.display = 'none';
+  document.getElementById('btn-start-scan').classList.remove('btn-scanning');
+  toast('Escaneo cancelado', 'info');
+}
+
+// Detectar subred al cargar
+async function inicializarScanner() {
+  const red = await GET('/scan/network');
+  if (red && red.base) {
+    document.getElementById('scan-subnet-label').textContent = `Red detectada: ${red.base}.0/24 · Interfaz: ${red.iface}`;
+  } else {
+    document.getElementById('scan-subnet-label').textContent = 'No se pudo detectar la red local';
+  }
+  // Si hay un escaneo corriendo (ej. recarga de página), reconectar
+  const estado = await GET('/scan/status');
+  if (estado && estado.running) {
+    scanStartTime = new Date(estado.startedAt).getTime();
+    document.getElementById('scan-progress-wrap').style.display = 'block';
+    document.getElementById('scan-idle').style.display    = 'none';
+    document.getElementById('btn-start-scan').style.display  = 'none';
+    document.getElementById('btn-cancel-scan').style.display = 'inline-flex';
+    scanInterval = setInterval(actualizarEscaneo, 1200);
+  } else if (estado && estado.found && estado.found.length > 0) {
+    // Mostrar resultados del último escaneo
+    document.getElementById('scan-idle').style.display   = 'none';
+    document.getElementById('scan-results').style.display = 'block';
+    const n = estado.found.length;
+    document.getElementById('scan-results-title').textContent = `${n} dispositivo${n !== 1 ? 's' : ''} encontrado${n !== 1 ? 's' : ''} (último escaneo)`;
+    renderizarResultados(estado.found);
+    actualizarSummary(estado.found);
+  }
+}
+
+// ── Auto-refresh ──────────────────────────────────────────────────────────────
+cargarTodo();
+setInterval(cargarTodo, 15000); // refrescar cada 15s
+inicializarScanner();
+</script>
+</body>
+</html>
