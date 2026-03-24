@@ -121,6 +121,16 @@
   .ip-address { font-family: var(--mono); font-size: 13px; color: var(--text); font-weight: 500; }
   .ip-name { font-size: 12px; color: var(--text2); margin-top: 2px; }
 
+  .ip-link {
+    font-family: var(--mono); font-size: 13px; font-weight: 600;
+    color: var(--blue); text-decoration: none;
+    display: inline-flex; align-items: center; gap: 4px;
+    transition: color 0.15s;
+  }
+  .ip-link:hover { color: #7ab4f0; }
+  .ip-link:hover .ip-link-arrow { opacity: 1; }
+  .ip-link-arrow { font-size: 10px; opacity: 0.4; transition: opacity 0.15s; }
+
   /* Status pill */
   .pill {
     display: inline-flex; align-items: center; gap: 5px;
@@ -371,7 +381,7 @@
   .import-stat { font-size: 12px; font-family: var(--mono); color: var(--text2); }
   .import-stat strong { color: var(--text); }
 
-  .import-preview-scroll { max-height: 260px; overflow-y: auto; border: 1px solid var(--border); border-radius: 7px; }
+  .import-preview-scroll { max-height: 200px; overflow-y: auto; border: 1px solid var(--border); border-radius: 7px; }
 
   .btn-template {
     display: inline-flex; align-items: center; gap: 6px;

@@ -2,9 +2,16 @@ const fs   = require('fs');
 const path = require('path');
 const initSqlJs = require('sql.js');
 
-const DB_PATH = process.pkg
-  ? path.join(path.dirname(process.execPath), 'ips.db')  // dentro del .exe
-  : path.join(__dirname, 'ips.db');  
+const basePath = process.pkg
+  ? path.join(process.env.PROGRAMDATA, 'MonitorIP')
+  : __dirname;
+
+if (!fs.existsSync(basePath)) {
+  fs.mkdirSync(basePath, { recursive: true });
+}
+
+const DB_PATH = path.join(basePath, 'ips.db');
+
 let db;
 
 async function inicializarDB() {
