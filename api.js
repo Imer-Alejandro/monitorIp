@@ -45,22 +45,36 @@ router.get('/ips/:id/historial', (req, res) => {
 // ── Config ────────────────────────────────────────────────────────────────────
 router.get('/config', (req, res) => {
   const cfg = db.todaConfig();
-  const safe = { ...cfg };
-  if (safe.smtp_pass) safe.smtp_pass = '••••••••';
-  res.json(safe);
+
+  res.json({
+    ...cfg,
+    smtp_pass: undefined,
+    smtp_pass_configurada: !!cfg.smtp_pass
+  });
 });
 
 router.post('/config', (req, res) => {
   const campos = [
-    'smtp_host', 'smtp_port', 'smtp_user', 'smtp_pass',
+    'smtp_host', 'smtp_port', 'smtp_user',
     'correo_destino', 'intervalo_seg', 'minutos_alerta'
   ];
+
+  // actualizar campos normales
   for (const c of campos) {
     if (req.body[c] !== undefined) {
-      if (c === 'smtp_pass' && req.body[c] === '••••••••') continue;
       db.setConfig(c, req.body[c]);
     }
   }
+
+  //  manejar password separado (forma correcta)
+  if (
+    req.body.smtp_pass !== undefined &&
+    req.body.smtp_pass !== '' &&
+    req.body.smtp_pass !== '••••••••'
+  ) {
+    db.setConfig('smtp_pass', req.body.smtp_pass);
+  }
+
   reiniciar();
   res.json({ ok: true });
 });

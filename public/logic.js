@@ -266,25 +266,32 @@ function setSelect(id, val) {
 }
 
 async function guardarConfig() {
+  const passinput = document.getElementById('cfg-smtp-pass').value;
+
   const body = {
-    smtp_host:      document.getElementById('cfg-smtp-host').value,
-    smtp_port:      document.getElementById('cfg-smtp-port').value,
-    smtp_user:      document.getElementById('cfg-smtp-user').value,
-    smtp_pass:      document.getElementById('cfg-smtp-pass').value,
+    smtp_host: document.getElementById('cfg-smtp-host').value,
+    smtp_port: document.getElementById('cfg-smtp-port').value,
+    smtp_user: document.getElementById('cfg-smtp-user').value,
     correo_destino: document.getElementById('cfg-destino').value,
-    intervalo_seg:  document.getElementById('cfg-intervalo').value,
+    intervalo_seg: document.getElementById('cfg-intervalo').value,
     minutos_alerta: document.getElementById('cfg-minutos').value,
-  };
+  }
+
+  if(passinput.trim() !== '') {
+    body.smtp_pass = passinput;
+  }
+
   const res = await POST('/config', body);
-  if (res.ok) toast('Configuración guardada. Monitor reiniciado.');
-  else toast('Error guardando config', 'err');
+  
+  if (res.ok) {
+    toast('Configuración guardada');
+    cargarConfig();
+  } else {
+    toast('Error al guardar la configuración', 'error');
+  }
+
 }
 
-async function testCorreo() {
-  toast('Enviando correo de prueba...', 'info');
-  const res = await POST('/test-correo', {});
-  toast(res.msg, res.ok ? 'ok' : 'err');
-}
 
 // ── Utils ─────────────────────────────────────────────────────────────────────
 function formatTime(ts) {
@@ -299,6 +306,22 @@ function formatTime(ts) {
   return d.toLocaleDateString('es-DO');
 }
 
+
+async function testCorreo() {
+  try {
+    const res = await POST('/test-correo', {});
+
+    if (res.ok) {
+      toast(res.msg || 'Correo enviado correctamente', 'ok');
+    } else {
+      toast(res.msg || 'Error al enviar correo', 'err');
+    }
+
+  } catch (e) {
+    toast('Error de conexión al probar correo', 'err');
+    console.error(e);
+  }
+}
 // ── Teclas de modal ───────────────────────────────────────────────────────────
 document.getElementById('modal-nombre').addEventListener('keydown', e => { if (e.key === 'Enter') guardarIP(); });
 document.getElementById('modal-ip').addEventListener('keydown', e => { if (e.key === 'Enter') guardarIP(); });
