@@ -15,7 +15,7 @@ const DB_PATH = path.join(basePath, 'ips.db');
 let db;
 
 async function inicializarDB() {
-  const SQL = await initSqlJs();
+  const SQL = await initSqlJs(); 
   if (fs.existsSync(DB_PATH)) {
     const fileBuffer = fs.readFileSync(DB_PATH);
     db = new SQL.Database(fileBuffer);
